@@ -68,9 +68,9 @@ static void insert_word(words_t **leaf, char *new_word, int new_line)
 /*
  * Checks if the input character is alphabetical
  */
-static bool isAlphabethical(char letter)
+static bool is_alphabetical(char letter)
 {
-	if ((letter >= 'a') && (letter >= 'z') || (letter >= 'A') && (letter >= 'Z')) {
+	if ( (letter >= 'a') && (letter <= 'z') ) {
 		return true;
 	}
 
@@ -78,7 +78,24 @@ static bool isAlphabethical(char letter)
 }
 
 /*
- * Inserts all the words found on one line
+ * Checks if the input character is a separator or punctuation
+ */
+static bool is_separator(char letter)
+{
+	if ( (letter == ' ') || (letter == '.') ||
+         (letter == ',') || (letter == ';') ||
+		 (letter == '-') || (letter == ':') ||
+		 (letter == '(') || (letter == ')') ||
+	 	(letter == '\n') ) {
+		return true;
+	}
+
+	return false;
+}
+
+/*
+ * Gets one line as an input
+ * Every word found is inserted into the binary tree
  */
 static void line_handler(const char *line, const unsigned int line_number)
 {
@@ -88,33 +105,52 @@ static void line_handler(const char *line, const unsigned int line_number)
 	char word[LINE_LENGTH_MAX]; /* plan the worst case: word's length is the line's length */
 
 	for (int i = 0; i < LINE_LENGTH_MAX; i++) {
-		if(line[i] == '\n') {
-			/* exit on end of line */
-			break;
-		}
-		else if( isAlphabethical(line[i]) ) {
+		if ( is_alphabetical(line[i]) ) {
 			if (word_length == 0) {
 				word_start_index = i;
 			}
 			word_length++;
 		}
-		else {
-			p_word = (char *)malloc(word_length + 1);
+		else if ( is_separator(line[i]) ) {
+			if (word_length > 0) {
+				p_word = (char *)malloc(word_length + 1);
 
-			int j;
-			for (j = 0; j < word_length; j++) {
-				word[j] = line[word_start_index + j];
+				int j;
+				for (j = 0; j < word_length; j++) {
+					word[j] = line[word_start_index + j];
+				}
+				word[j] = '\0';
+
+				strncpy(p_word, word, word_length+1);
+				insert_word(&tree_root, p_word, line_number);
+				/* TODO create insert_line(line_number); */
+				word_length = 0;
+
+				if (DEBUG) {
+					printf("inserted %s\n", word);
+				}
 			}
-			word[j] = '\0';
+		}
 
-			strncpy(p_word, word, word_length+1);
-			insert_word(&tree_root, p_word, line_number);
-			word_length = 0;
+		if (line[i] == '\n') {
+			/* exit on end of line */
+			break;
 		}
 	}
+}
 
-	if (DEBUG) {
-		printf("inserted %s\n", word);
+static void lower_string(char *line)
+{
+	unsigned int i = 0;
+	unsigned int offset = 'a' - 'A';
+
+	if (DEBUG) printf("offset: %d", offset);
+
+	while (line[i] != '\0') {
+	  if (line[i] >= 'A' && line[i] <= 'Z') {
+	     line[i] = line[i] + offset;
+	  }
+	  i++;
 	}
 }
 
@@ -126,9 +162,10 @@ void parse_file(FILE *input)
 	while (fgets(one_line, LINE_LENGTH_MAX, input) != NULL)
 	{
 		if (DEBUG) {
-			printf("line %d: %s\n", line_number, one_line);
+			printf("line %d: %s", line_number, one_line);
 		}
 
+		lower_string(one_line);	/* convert to lowercase to avoid doubles */
 		line_handler(one_line, line_number);
 		line_number++;
 	}
@@ -164,8 +201,6 @@ void generate_tree(FILE *input_file)
     parse_file(input_file);
 
     display_tree(tree_root);
-
-    // getchar();
 
     destroy_tree(tree_root);
 
