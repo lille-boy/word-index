@@ -1,16 +1,21 @@
 #include <stdio.h>
 #include "word_index.h"
 
-int main(void)
+int main(int argc, char *argv[])
 {
-    const char * filePath = "text.txt";
+    if (argc > 1) {
+        char * filePath = argv[1];
 
-	FILE *input_file = fopen(filePath, "r");
+        FILE *input_file = fopen(filePath, "r");
 
-	if (input_file != NULL)
-	{
-		generate_tree(input_file);
-	}
+    	if (input_file != NULL)
+    	{
+    		generate_tree(input_file);
+    	}
+    }
+    else {
+        printf("Missing argument: text file\n");
+    }
 
 	return 0;
 }
