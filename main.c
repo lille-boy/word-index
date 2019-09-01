@@ -12,6 +12,8 @@ int main(int argc, char *argv[])
     	{
     		generate_tree(input_file);
     	}
+        
+        fclose(input_file);
     }
     else {
         printf("Missing argument: text file\n");

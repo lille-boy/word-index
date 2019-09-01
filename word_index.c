@@ -144,8 +144,6 @@ static void lower_string(char *line)
 	unsigned int i = 0;
 	unsigned int offset = 'a' - 'A';
 
-	if (DEBUG) printf("offset: %d", offset);
-
 	while (line[i] != '\0') {
 	  if (line[i] >= 'A' && line[i] <= 'Z') {
 	     line[i] = line[i] + offset;
@@ -203,6 +201,4 @@ void generate_tree(FILE *input_file)
     display_tree(tree_root);
 
     destroy_tree(tree_root);
-
-    fclose(input_file);
 }
