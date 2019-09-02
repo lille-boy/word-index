@@ -152,7 +152,7 @@ static void lower_string(char *line)
 	}
 }
 
-void parse_file(FILE *input)
+static void parse_file(FILE *input)
 {
 	unsigned int line_number = 1;
 	char one_line[LINE_LENGTH_MAX];
@@ -170,20 +170,19 @@ void parse_file(FILE *input)
 }
 
 /*
- * Displays the tree in alphabetical order
+ * Write the sorted binary tree to a file
+ * The output is the list of words in alphabetical order
  */
-void display_tree(words_t *tree)
+static void write_tree_to_file(words_t *tree, FILE *output_file)
 {
 	if (tree) {
-		display_tree(tree->next_left);
-		printf("%s ", tree->word);
-		//printf("%d, ", tree->lines->line_number);
-		printf("\n");
-		display_tree(tree->next_right);
+		write_tree_to_file(tree->next_left, output_file);
+		fputs(strcat(tree->word, "\n"), output_file);
+		write_tree_to_file(tree->next_right, output_file);
 	}
 }
 
-void destroy_tree(words_t *leaf)
+static void destroy_tree(words_t *leaf)
 {
 	if (leaf != 0) {
 		destroy_tree(leaf->next_left);
@@ -192,13 +191,17 @@ void destroy_tree(words_t *leaf)
 	}
 }
 
-void generate_tree(FILE *input_file)
+void generate_index(FILE *input_file)
 {
     destroy_tree(tree_root);
 
     parse_file(input_file);
 
-    display_tree(tree_root);
+	FILE *output_file = fopen("output.txt", "w");
+	if (input_file != NULL) {
+		write_tree_to_file(tree_root, output_file);
+	}
+	fclose(output_file);
 
     destroy_tree(tree_root);
 }

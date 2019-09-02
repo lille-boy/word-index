@@ -7,12 +7,10 @@ int main(int argc, char *argv[])
         char * filePath = argv[1];
 
         FILE *input_file = fopen(filePath, "r");
-
     	if (input_file != NULL)
     	{
-    		generate_tree(input_file);
+    		generate_index(input_file);
     	}
-        
         fclose(input_file);
     }
     else {
