@@ -68,9 +68,9 @@ static void insert_word(words_t **leaf, char *new_word, int new_line)
 /*
  * Checks if the input character is alphabetical
  */
-static bool isAlphabethical(char letter)
+static bool is_alphabetical(char letter)
 {
-	if ((letter >= 'a') && (letter >= 'z') || (letter >= 'A') && (letter >= 'Z')) {
+	if ( (letter >= 'a') && (letter <= 'z') ) {
 		return true;
 	}
 
@@ -78,7 +78,24 @@ static bool isAlphabethical(char letter)
 }
 
 /*
- * Inserts all the words found on one line
+ * Checks if the input character is a separator or punctuation
+ */
+static bool is_separator(char letter)
+{
+	if ( (letter == ' ') || (letter == '.') ||
+         (letter == ',') || (letter == ';') ||
+		 (letter == '-') || (letter == ':') ||
+		 (letter == '(') || (letter == ')') ||
+	 	(letter == '\n') ) {
+		return true;
+	}
+
+	return false;
+}
+
+/*
+ * Gets one line as an input
+ * Every word found is inserted into the binary tree
  */
 static void line_handler(const char *line, const unsigned int line_number)
 {
@@ -88,37 +105,54 @@ static void line_handler(const char *line, const unsigned int line_number)
 	char word[LINE_LENGTH_MAX]; /* plan the worst case: word's length is the line's length */
 
 	for (int i = 0; i < LINE_LENGTH_MAX; i++) {
-		if(line[i] == '\n') {
-			/* exit on end of line */
-			break;
-		}
-		else if( isAlphabethical(line[i]) ) {
+		if ( is_alphabetical(line[i]) ) {
 			if (word_length == 0) {
 				word_start_index = i;
 			}
 			word_length++;
 		}
-		else {
-			p_word = (char *)malloc(word_length + 1);
+		else if ( is_separator(line[i]) ) {
+			if (word_length > 0) {
+				p_word = (char *)malloc(word_length + 1);
 
-			int j;
-			for (j = 0; j < word_length; j++) {
-				word[j] = line[word_start_index + j];
+				int j;
+				for (j = 0; j < word_length; j++) {
+					word[j] = line[word_start_index + j];
+				}
+				word[j] = '\0';
+
+				strncpy(p_word, word, word_length+1);
+				insert_word(&tree_root, p_word, line_number);
+				/* TODO create insert_line(line_number); */
+				word_length = 0;
+
+				if (DEBUG) {
+					printf("inserted %s\n", word);
+				}
 			}
-			word[j] = '\0';
-
-			strncpy(p_word, word, word_length+1);
-			insert_word(&tree_root, p_word, line_number);
-			word_length = 0;
 		}
-	}
 
-	if (DEBUG) {
-		printf("inserted %s\n", word);
+		if (line[i] == '\n') {
+			/* exit on end of line */
+			break;
+		}
 	}
 }
 
-void parse_file(FILE *input)
+static void lower_string(char *line)
+{
+	unsigned int i = 0;
+	unsigned int offset = 'a' - 'A';
+
+	while (line[i] != '\0') {
+	  if (line[i] >= 'A' && line[i] <= 'Z') {
+	     line[i] = line[i] + offset;
+	  }
+	  i++;
+	}
+}
+
+static void parse_file(FILE *input)
 {
 	unsigned int line_number = 1;
 	char one_line[LINE_LENGTH_MAX];
@@ -126,29 +160,29 @@ void parse_file(FILE *input)
 	while (fgets(one_line, LINE_LENGTH_MAX, input) != NULL)
 	{
 		if (DEBUG) {
-			printf("line %d: %s\n", line_number, one_line);
+			printf("line %d: %s", line_number, one_line);
 		}
 
+		lower_string(one_line);	/* convert to lowercase to avoid doubles */
 		line_handler(one_line, line_number);
 		line_number++;
 	}
 }
 
 /*
- * Displays the tree in alphabetical order
+ * Write the sorted binary tree to a file
+ * The output is the list of words in alphabetical order
  */
-void display_tree(words_t *tree)
+static void write_tree_to_file(words_t *tree, FILE *output_file)
 {
 	if (tree) {
-		display_tree(tree->next_left);
-		printf("%s ", tree->word);
-		//printf("%d, ", tree->lines->line_number);
-		printf("\n");
-		display_tree(tree->next_right);
+		write_tree_to_file(tree->next_left, output_file);
+		fputs(strcat(tree->word, "\n"), output_file);
+		write_tree_to_file(tree->next_right, output_file);
 	}
 }
 
-void destroy_tree(words_t *leaf)
+static void destroy_tree(words_t *leaf)
 {
 	if (leaf != 0) {
 		destroy_tree(leaf->next_left);
@@ -157,17 +191,17 @@ void destroy_tree(words_t *leaf)
 	}
 }
 
-void generate_tree(FILE *input_file)
+void generate_index(FILE *input_file)
 {
     destroy_tree(tree_root);
 
     parse_file(input_file);
 
-    display_tree(tree_root);
-
-    // getchar();
+	FILE *output_file = fopen("output.txt", "w");
+	if (input_file != NULL) {
+		write_tree_to_file(tree_root, output_file);
+	}
+	fclose(output_file);
 
     destroy_tree(tree_root);
-
-    fclose(input_file);
 }

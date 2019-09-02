@@ -1,3 +1,3 @@
 #define DEBUG   0
 
-void generate_tree(FILE *input_file);
+void generate_index(FILE *input_file);
