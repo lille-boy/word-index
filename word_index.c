@@ -40,11 +40,23 @@ struct lines {
 words_t *tree_root = 0;
 
 /******************************************************************************
- * Inserts a line number into the linked list of line numbers
+ * Adds a line number to the linked list
  *****************************************************************************/
-static void insert_line_number()
+static void add_line_number(lines_t *head, int line_number)
 {
+	lines_t *current = head;
 
+	while (current->line_number != line_number) {
+		if (current->next_line == NULL) {
+			current->next_line = (lines_t *)malloc(sizeof(lines_t));
+			current->next_line->line_number = line_number;
+			current->next_line->next_line = NULL;
+			return;
+		}
+		else {
+			current = current->next_line;
+		}
+	}
 }
 
 /******************************************************************************
@@ -52,8 +64,6 @@ static void insert_line_number()
  *****************************************************************************/
 static void insert_word(words_t **leaf, char *new_word, int new_line)
 {
-	int result;
-
 	if (*leaf == 0) {
 		*leaf = (words_t *)malloc(sizeof(words_t));
 		(*leaf)->word = new_word;
@@ -63,7 +73,7 @@ static void insert_word(words_t **leaf, char *new_word, int new_line)
 		(*leaf)->lines->line_number = new_line;
 	}
 	else {
-		result = strcmp(new_word, (*leaf)->word);
+		int result = strcmp(new_word, (*leaf)->word);
 
 		if (result > 0) {
 			insert_word(&(*leaf)->next_right, new_word, new_line);
@@ -71,8 +81,9 @@ static void insert_word(words_t **leaf, char *new_word, int new_line)
 		else if (result < 0) {
 			insert_word(&(*leaf)->next_left, new_word, new_line);
 		}
-		else { /* word is already in the index, add line number only */
-			insert_line_number(new_line);
+		else {
+			/* word is already in the index, add line number only */
+			add_line_number((*leaf)->lines, new_line);
 		}
 	}
 }
@@ -135,7 +146,6 @@ static void line_handler(const char *line, const unsigned int line_number)
 
 				strncpy(p_word, word, word_length+1);
 				insert_word(&tree_root, p_word, line_number);
-				/* TODO create insert_line(line_number); */
 				word_length = 0;
 
 				if (DEBUG) {
@@ -189,15 +199,16 @@ static void parse_file(FILE *input)
 }
 
 /******************************************************************************
- * Writes the lines where a words appears to the file
+ * Writes the lines where a word appears to the output file
  *****************************************************************************/
 static void write_lines_to_file(lines_t *line, FILE *output_file)
 {
-	if (line) {
-		write_lines_to_file(line, output_file);
-		char number[4]; /* up to 9999 lines */
+	char number[4]; /* up to 9999 lines */
+
+	while (line != NULL) {
 		sprintf(number, "%d, ", line->line_number);
 		fputs(number, output_file);
+		line = line->next_line;
 	}
 }
 
@@ -211,7 +222,7 @@ static void write_tree_to_file(words_t *tree, FILE *output_file)
 		write_tree_to_file(tree->next_left, output_file);
 		fputs(tree->word, output_file);
 		fputs(" ", output_file);
-		//write_lines_to_file(tree->lines, output_file);
+		write_lines_to_file(tree->lines, output_file);
 		fputs("\n", output_file);
 		write_tree_to_file(tree->next_right, output_file);
 	}
