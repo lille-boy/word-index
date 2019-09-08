@@ -1,16 +1,17 @@
-/*
+/**************************************************************************************************
  * Create an index of all the words used in an input file
  * Sort them in alphabetical order
  * Next to each word, the lines where it appears are added, separated by commas
  *
  * Example:
- *         apple	1, 5
- *         banana	3, 5, 12
+ *         apple 1, 5,
+ *         banana 3, 5, 12,
+ *         cherry 4,
  *
  *	Resources:
  *		https://www.cprogramming.com/tutorial/c/lesson18.html
  *		https://www.thegeekstuff.com/2013/02/c-binary-tree
- */
+ *************************************************************************************************/
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -25,7 +26,7 @@ typedef struct words words_t;
 typedef struct lines lines_t;
 
 struct words {
-	char * word;
+	char *word;
 	lines_t *lines;
 	words_t *next_left;
 	words_t *next_right;
@@ -38,10 +39,31 @@ struct lines {
 
 words_t *tree_root = 0;
 
+/******************************************************************************
+ * Adds a line number to the linked list
+ *****************************************************************************/
+static void add_line_number(lines_t *head, int line_number)
+{
+	lines_t *current = head;
+
+	while (current->line_number != line_number) { /* Don't add the same line number twice */
+		if (current->next_line == NULL) {
+			current->next_line = (lines_t *)malloc(sizeof(lines_t));
+			current->next_line->line_number = line_number;
+			current->next_line->next_line = NULL;
+			return;
+		}
+		else {
+			current = current->next_line;
+		}
+	}
+}
+
+/******************************************************************************
+ * Inserts a word into the binary tree, together with the line where it appears
+ *****************************************************************************/
 static void insert_word(words_t **leaf, char *new_word, int new_line)
 {
-	int result;
-
 	if (*leaf == 0) {
 		*leaf = (words_t *)malloc(sizeof(words_t));
 		(*leaf)->word = new_word;
@@ -51,7 +73,7 @@ static void insert_word(words_t **leaf, char *new_word, int new_line)
 		(*leaf)->lines->line_number = new_line;
 	}
 	else {
-		result = strcmp(new_word, (*leaf)->word);
+		int result = strcmp(new_word, (*leaf)->word);
 
 		if (result > 0) {
 			insert_word(&(*leaf)->next_right, new_word, new_line);
@@ -60,14 +82,15 @@ static void insert_word(words_t **leaf, char *new_word, int new_line)
 			insert_word(&(*leaf)->next_left, new_word, new_line);
 		}
 		else {
-			/* add line number only */
+			/* word is already in the index, add line number only */
+			add_line_number((*leaf)->lines, new_line);
 		}
 	}
 }
 
-/*
+/******************************************************************************
  * Checks if the input character is alphabetical
- */
+ *****************************************************************************/
 static bool is_alphabetical(char letter)
 {
 	if ( (letter >= 'a') && (letter <= 'z') ) {
@@ -77,9 +100,9 @@ static bool is_alphabetical(char letter)
 	return false;
 }
 
-/*
+/******************************************************************************
  * Checks if the input character is a separator or punctuation
- */
+ *****************************************************************************/
 static bool is_separator(char letter)
 {
 	if ( (letter == ' ') || (letter == '.') ||
@@ -93,10 +116,10 @@ static bool is_separator(char letter)
 	return false;
 }
 
-/*
+/******************************************************************************
  * Gets one line as an input
  * Every word found is inserted into the binary tree
- */
+ *****************************************************************************/
 static void line_handler(const char *line, const unsigned int line_number)
 {
 	unsigned int word_length = 0;
@@ -123,7 +146,6 @@ static void line_handler(const char *line, const unsigned int line_number)
 
 				strncpy(p_word, word, word_length+1);
 				insert_word(&tree_root, p_word, line_number);
-				/* TODO create insert_line(line_number); */
 				word_length = 0;
 
 				if (DEBUG) {
@@ -139,6 +161,10 @@ static void line_handler(const char *line, const unsigned int line_number)
 	}
 }
 
+/******************************************************************************
+ * Takes a line and converts all letters to lower lowercase
+ * This is to avoid doubles
+ *****************************************************************************/
 static void lower_string(char *line)
 {
 	unsigned int i = 0;
@@ -152,6 +178,9 @@ static void lower_string(char *line)
 	}
 }
 
+/******************************************************************************
+ * Parses the input file line by line
+ *****************************************************************************/
 static void parse_file(FILE *input)
 {
 	unsigned int line_number = 1;
@@ -169,19 +198,39 @@ static void parse_file(FILE *input)
 	}
 }
 
-/*
+/******************************************************************************
+ * Writes the lines where a word appears to the output file
+ *****************************************************************************/
+static void write_lines_to_file(lines_t *line, FILE *output_file)
+{
+	char number[4]; /* up to 9999 lines */
+
+	while (line != NULL) {
+		sprintf(number, "%d, ", line->line_number);
+		fputs(number, output_file);
+		line = line->next_line;
+	}
+}
+
+/******************************************************************************
  * Write the sorted binary tree to a file
  * The output is the list of words in alphabetical order
- */
+ *****************************************************************************/
 static void write_tree_to_file(words_t *tree, FILE *output_file)
 {
 	if (tree) {
 		write_tree_to_file(tree->next_left, output_file);
-		fputs(strcat(tree->word, "\n"), output_file);
+		fputs(tree->word, output_file);
+		fputs(" ", output_file);
+		write_lines_to_file(tree->lines, output_file);
+		fputs("\n", output_file);
 		write_tree_to_file(tree->next_right, output_file);
 	}
 }
 
+/******************************************************************************
+ * Destroys the binary tree (frees memory)
+ *****************************************************************************/
 static void destroy_tree(words_t *leaf)
 {
 	if (leaf != 0) {
@@ -191,17 +240,18 @@ static void destroy_tree(words_t *leaf)
 	}
 }
 
-void generate_index(FILE *input_file)
+/******************************************************************************
+ * Parses the input file and generates the index
+ *****************************************************************************/
+void generate_index(FILE *input_file, FILE * output_file)
 {
     destroy_tree(tree_root);
 
     parse_file(input_file);
 
-	FILE *output_file = fopen("output.txt", "w");
 	if (input_file != NULL) {
 		write_tree_to_file(tree_root, output_file);
 	}
-	fclose(output_file);
 
     destroy_tree(tree_root);
 }
