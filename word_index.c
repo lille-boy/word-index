@@ -46,7 +46,7 @@ static void add_line_number(lines_t *head, int line_number)
 {
 	lines_t *current = head;
 
-	while (current->line_number != line_number) {
+	while (current->line_number != line_number) { /* Don't add the same line number twice */
 		if (current->next_line == NULL) {
 			current->next_line = (lines_t *)malloc(sizeof(lines_t));
 			current->next_line->line_number = line_number;
