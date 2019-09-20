@@ -93,7 +93,10 @@ static void insert_word(words_t **leaf, char *new_word, int new_line)
  *****************************************************************************/
 static bool is_alphabetical(char letter)
 {
-	if ( (letter >= 'a') && (letter <= 'z') ) {
+	if ( ((letter >= 'a') && (letter <= 'z')) ||
+		 (letter == 0x27) || /* character ' to keep words like "doesn't" or "can't" */
+		 (letter ==  '-') /* to keep words like "up-to-date" */
+	   ) {
 		return true;
 	}
 
@@ -105,11 +108,11 @@ static bool is_alphabetical(char letter)
  *****************************************************************************/
 static bool is_separator(char letter)
 {
-	if ( (letter == ' ') || (letter == '.') ||
-         (letter == ',') || (letter == ';') ||
-		 (letter == '-') || (letter == ':') ||
-		 (letter == '(') || (letter == ')') ||
-	 	(letter == '\n') ) {
+	if (((letter >= ' ') && (letter <= '&')) ||
+		((letter >= '(') && (letter <= '@')) ||
+		((letter >= '[') && (letter <= '`')) ||
+		((letter >= '{') && (letter <= '~')) ||
+		(letter == '\n')) {
 		return true;
 	}
 
@@ -147,9 +150,6 @@ static void line_handler(const char *line, const unsigned int line_number)
 				strncpy(p_word, word, word_length+1);
 				insert_word(&tree_root, p_word, line_number);
 				word_length = 0;
-
-				if (DEBUG) {
-					printf("inserted %s\n", word);
 				}
 			}
 		}
@@ -162,7 +162,7 @@ static void line_handler(const char *line, const unsigned int line_number)
 }
 
 /******************************************************************************
- * Takes a line and converts all letters to lower lowercase
+ * Takes a line and converts all letters to lowercase
  * This is to avoid doubles
  *****************************************************************************/
 static void lower_string(char *line)
@@ -188,11 +188,10 @@ static void parse_file(FILE *input)
 
 	while (fgets(one_line, LINE_LENGTH_MAX, input) != NULL)
 	{
+		lower_string(one_line);	/* convert to lowercase to avoid doubles */
 		if (DEBUG) {
 			printf("line %d: %s", line_number, one_line);
 		}
-
-		lower_string(one_line);	/* convert to lowercase to avoid doubles */
 		line_handler(one_line, line_number);
 		line_number++;
 	}

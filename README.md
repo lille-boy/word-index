@@ -16,5 +16,5 @@ To avoid doubles, for example "The" and "the", the program converts the input te
 If a word appears several times on the same line, it records the line number once.
 
 ## How to use
-The program requires a text file as an input.
+The program requires a text file as an input. It only accepts ASCII. Each line should not exceed 512 characters.
 It writes the index to an output file, which is an optional parameter (by default "output.txt").
