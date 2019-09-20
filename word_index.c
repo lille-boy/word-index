@@ -150,7 +150,6 @@ static void line_handler(const char *line, const unsigned int line_number)
 				strncpy(p_word, word, word_length+1);
 				insert_word(&tree_root, p_word, line_number);
 				word_length = 0;
-				}
 			}
 		}
 
